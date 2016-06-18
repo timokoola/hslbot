@@ -45,7 +45,7 @@ class HslRequests(object):
 
         if s["departures"]:
             departure_line = "\n".join(
-                ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x in s["departures"]])
+                ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x in s["departures"][:3]])
         else:
             departure_line = ""
 
