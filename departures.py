@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from pytz import timezone
 
 import requests
 from collections import defaultdict
@@ -30,11 +31,40 @@ def hsl_time_to_time(x):
     return "%02d.%02d" % (x / 100 % 24, x % 100)
 
 
+# 1 = Helsinki internal bus lines
+# 2 = trams
+# 3 = Espoo internal bus lines
+# 4 = Vantaa internal bus lines
+# 5 = regional bus lines
+# 6 = metro
+# 7 = ferry
+# 8 = U-lines
+# 12 = commuter trains
+# 21 = Helsinki service lines
+# 22 = Helsinki night buses
+# 23 = Espoo service lines
+# 24 = Vantaa service lines
+# 25 = region night buses
+# 36 = Kirkkonummi internal bus lines
+# 39 = Kerava internal bus lines
+def vehicle_map(x):
+    if x == 2:
+        return "Tram"
+    elif x == 6:
+        return "Metro"
+    elif x == 7:
+        return "Ferry"
+    elif x == 12:
+        return "Train"
+    else:
+        return "Bus"
+
+
 def relative_minutes(stoptime, comparison_time=None):
     if (comparison_time):
         usertime = comparison_time
     else:
-        usertime = datetime.datetime.now()
+        usertime = datetime.datetime.now(tz=timezone("Europe/Helsinki"))
     sth = stoptime / 100
     if sth >= 24 and usertime.hour < 12:
         nowagg = (usertime.hour + 24) * 60 + usertime.minute
@@ -56,7 +86,7 @@ class HslRequests(object):
         if l:
             lines = dict([(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x in l])
         else:
-            return "Helsinki area has no such stop." % stop_code
+            return "Helsinki area has no such stop."
 
         stop_line = s["code_short"] + " " + s["name_fi"] + " " + s["address_fi"]
 
@@ -72,19 +102,31 @@ class HslRequests(object):
         (stop_info, l) = self._stop_info_lines_info(stop_code)
         s = stop_info[0]
         if l:
-            lines = dict([(x["code"], "%s" % (x["code_short"])) for x in l])
+            lines = dict([(x["code"], "%s %s" % (vehicle_map(x["transport_type_id"]), x["code_short"])) for x in l])
         else:
-            return "Helsinki area has no such stop." % stop_code
+            return "Helsinki area has no such stop."
 
-        stop_line = "Stop %s" % s["code_short"]
+        stop_line = "For stop %s" % s["code_short"]
 
         if s["departures"]:
-            departure_line = "\n".join(
-                ["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x in s["departures"][:3]])
+            departure_line = (["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x in
+                               s["departures"][:3]])
+            summary_line = "\n".join(
+                ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x in s["departures"][:3]])
         else:
-            departure_line = "No departures within next 60 minutes"
+            departure_line = ["No departures within next 60 minutes"]
+            summary_line = "No departures within next 60 minutes"
 
-        return "\n".join([stop_line, departure_line])
+        if len(departure_line) == 1:
+            speech = "%s: %s" % (stop_line, departure_line[0])
+        elif len(departure_line) == 2:
+            speech = "%s: Next departures are %s and %s" % (stop_line, departure_line[0], departure_line[1])
+        elif len(departure_line) == 3:
+            speech = "%s: Next departures are %s, %s, and %s" % (
+                stop_line, departure_line[0], departure_line[1], departure_line[2])
+        card = "\n".join([stop_line, summary_line])
+
+        return (speech, card)
 
     def _stop_info_lines_info(self, stop_code):
         try:
