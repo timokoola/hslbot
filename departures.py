@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import datetime
-from pytz import timezone
-
-import requests
+from datetime import datetime
 from collections import defaultdict
+
+from requests import get, exceptions
+from pytz import timezone
 
 
 class HslUrls(object):
@@ -13,17 +13,20 @@ class HslUrls(object):
         self.baseurl = "http://api.reittiopas.fi/hsl/prod/?request="
 
     def nearby_stops(self, longitude, latitude):
-        url = "%sstops_area&epsg_in=4326&center_coordinate=%s,%s&user=%s&pass=%s" % (
-            self.baseurl, latitude, longitude, self.user, self.password)
+        url = "%sstops_area&epsg_in=4326&" \
+              "center_coordinate=%s,%s&user=%s&pass=%s" % \
+              (self.baseurl, latitude, longitude, self.user, self.password)
         return url
 
     def stop_info(self, stop_code):
-        url = "%sstop&epsg_out=4326&code=%s&user=%s&pass=%s" % (self.baseurl, stop_code, self.user, self.password)
+        url = "%sstop&epsg_out=4326&code=%s&user=%s&pass=%s" % (
+            self.baseurl, stop_code, self.user, self.password)
         return url
 
     def lines_info(self, lines):
         lines_str = "|".join(lines)
-        url = "%slines&epsg_out=4326&query=%s&user=%s&pass=%s" % (self.baseurl, lines_str, self.user, self.password)
+        url = "%slines&epsg_out=4326&query=%s&user=%s&pass=%s" % (
+            self.baseurl, lines_str, self.user, self.password)
         return url
 
 
@@ -61,10 +64,10 @@ def vehicle_map(x):
 
 
 def relative_minutes(stoptime, comparison_time=None):
-    if (comparison_time):
+    if comparison_time:
         usertime = comparison_time
     else:
-        usertime = datetime.datetime.now(tz=timezone("Europe/Helsinki"))
+        usertime = datetime.now(tz=timezone("Europe/Helsinki"))
     sth = stoptime / 100
     if sth >= 24 and usertime.hour < 12:
         nowagg = (usertime.hour + 24) * 60 + usertime.minute
@@ -84,7 +87,9 @@ class HslRequests(object):
         (stop_info, l) = self._stop_info_lines_info(stop_code)
         s = stop_info[0]
         if l:
-            lines = dict([(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x in l])
+            lines = dict(
+                [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
+                 in l])
         else:
             return "Helsinki area has no such stop."
 
@@ -92,7 +97,8 @@ class HslRequests(object):
 
         if s["departures"]:
             departure_line = "\n".join(
-                ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x in s["departures"][:3]])
+                ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x
+                 in s["departures"][:3]])
         else:
             departure_line = ""
 
@@ -102,17 +108,27 @@ class HslRequests(object):
         (stop_info, l) = self._stop_info_lines_info(stop_code)
         s = stop_info[0]
         if l:
-            lines = dict([(x["code"], "%s %s" % (vehicle_map(x["transport_type_id"]), x["code_short"])) for x in l])
+            lines = dict([(x["code"], "%s %s" % (
+                vehicle_map(x["transport_type_id"]), x["code_short"])) for x in
+                          l])
+            summary_lines = dict(
+                [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
+                 in l])
         else:
             return "Helsinki area has no such stop."
 
         stop_line = "For stop %s" % s["code_short"]
 
         if s["departures"]:
-            departure_line = (["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x in
-                               s["departures"][:3]])
+            departure_line = (
+                ["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x
+                 in
+                 s["departures"][:3]])
             summary_line = "\n".join(
-                ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x in s["departures"][:3]])
+                ["%s %s" % (
+                    hsl_time_to_time(x["time"]), summary_lines[x["code"]]) for x
+                 in
+                 s["departures"][:3]])
         else:
             departure_line = ["No departures within next 60 minutes"]
             summary_line = "No departures within next 60 minutes"
@@ -120,10 +136,12 @@ class HslRequests(object):
         if len(departure_line) == 1:
             speech = "%s: %s" % (stop_line, departure_line[0])
         elif len(departure_line) == 2:
-            speech = "%s: Next departures are %s and %s" % (stop_line, departure_line[0], departure_line[1])
+            speech = "%s: Next departures are %s and %s" % (
+                stop_line, departure_line[0], departure_line[1])
         elif len(departure_line) == 3:
             speech = "%s: Next departures are %s, %s, and %s" % (
-                stop_line, departure_line[0], departure_line[1], departure_line[2])
+                stop_line, departure_line[0], departure_line[1],
+                departure_line[2])
         card = "\n".join([stop_line, summary_line])
 
         return (speech, card)
@@ -141,8 +159,8 @@ class HslRequests(object):
     def _stop_info_json(self, stop_code):
         url = self.urls.stop_info(stop_code)
         try:
-            r = requests.get(url)
-        except requests.exceptions.RequestException:
+            r = get(url)
+        except exceptions.RequestException:
             return "Error"
         return r.json()
 
@@ -153,8 +171,8 @@ class HslRequests(object):
     def _lines_info(self, lines):
         url = self.urls.lines_info(lines)
         try:
-            r = requests.get(url)
-        except requests.exceptions.RequestException:
+            r = get(url)
+        except exceptions.RequestException:
             return "Error"
         return r.json()
 
@@ -178,15 +196,16 @@ class HslRequests(object):
         for last, code in ends_lines:
             d[last].append(code)
 
-        sumsum = ", ".join(["%s %s" % (", ".join(sorted(d[k])), k) for k in sorted(d.keys())])
+        sumsum = ", ".join(
+            ["%s %s" % (", ".join(sorted(d[k])), k) for k in sorted(d.keys())])
 
         return "\n".join([stop_line, sumsum])
 
     def _location_stops(self, longitude, latitude):
         url = self.urls.nearby_stops(longitude, latitude)
         try:
-            r = requests.get(url)
-        except requests.exceptions.RequestException:
+            r = get(url)
+        except exceptions.RequestException:
             return "Error"
         return r.json()
 
@@ -196,4 +215,5 @@ class HslRequests(object):
         if s == "Error":
             return "No stops nearby this location"
 
-        return "\n".join(["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in s])
+        return "\n".join(
+            ["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in s])

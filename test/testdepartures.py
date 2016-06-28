@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
 import unittest
+
 from departures import HslRequests
 
 buses_1576 = [u'2321  2:Elielinaukio, l. 24',
@@ -29,14 +31,24 @@ class DeparturesTests(unittest.TestCase):
     def test_unexisting(self):
         h = HslRequests(self.username, self.password)
         s = h.stop_summary(1232131)
-        self.assertIn("ei löydy pysäkki", s)
+        self.assertIn("has no such", s)
 
 
     def test_summary_line(self):
         h = HslRequests(self.username, self.password)
         s = h.stop_lines_summary(1576)
         self.assertIn("1576", s)
-        self.assertIn("elielinaukio", s)
+        self.assertIn("elielinaukio", s.lower())
+
+class LambdaTests(unittest.TestCase):
+
+    def test_environment_lambda_name(self):
+        self.assertTrue(os.environ.has_key("LAMBDANAME"))
+
+    def test_environment_lambda_url(self):
+        self.assertTrue(os.environ.has_key("LAMBDAURL"))
+
+
 
 
 if __name__ == '__main__':
