@@ -30,8 +30,8 @@ class HslUrls(object):
         return url
 
 
-def hsl_time_to_time(x):
-    return "%02d.%02d" % (x / 100 % 24, x % 100)
+def hsl_time_to_time(hsltime):
+    return "%02d.%02d" % (hsltime / 100 % 24, hsltime % 100)
 
 
 # 1 = Helsinki internal bus lines
@@ -50,14 +50,14 @@ def hsl_time_to_time(x):
 # 25 = region night buses
 # 36 = Kirkkonummi internal bus lines
 # 39 = Kerava internal bus lines
-def vehicle_map(x):
-    if x == 2:
+def vehicle_map(veh):
+    if veh == 2:
         return "Tram"
-    elif x == 6:
+    elif veh == 6:
         return "Metro"
-    elif x == 7:
+    elif veh == 7:
         return "Ferry"
-    elif x == 12:
+    elif veh == 12:
         return "Train"
     else:
         return "Bus"
@@ -84,21 +84,22 @@ class HslRequests(object):
         self.last_error = None
 
     def stop_summary(self, stop_code):
-        (stop_info, l) = self._stop_info_lines_info(stop_code)
-        s = stop_info[0]
-        if l:
+        (stop_info, line_data) = self._stop_info_lines_info(stop_code)
+        stop = stop_info[0]
+        if line_data:
             lines = dict(
                 [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
-                 in l])
+                 in line_data])
         else:
             return "Helsinki area has no such stop."
 
-        stop_line = s["code_short"] + " " + s["name_fi"] + " " + s["address_fi"]
+        stop_line = stop["code_short"] + " " + stop["name_fi"] + " " \
+                    + stop["address_fi"]
 
-        if s["departures"]:
+        if stop["departures"]:
             departure_line = "\n".join(
                 ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x
-                 in s["departures"][:3]])
+                 in stop["departures"][:3]])
         else:
             departure_line = ""
 
