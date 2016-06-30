@@ -55,5 +55,7 @@ docs/_build/
 
 # PyBuilder
 target/
+*.zip
+.idea/
 *.keys
 lambdamain.py

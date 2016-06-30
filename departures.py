@@ -91,7 +91,8 @@ class HslRequests(object):
                 [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
                  in line_data])
         else:
-            return ("Helsinki area has no such stop.","Helsinki area has no such stop.")
+            return ("Helsinki area has no such stop.",
+                    "Helsinki area has no such stop.")
 
         stop_line = stop["code_short"] + " " + stop["name_fi"] + " " \
                     + stop["address_fi"]
@@ -116,7 +117,8 @@ class HslRequests(object):
                 [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
                  in l])
         else:
-            return "Helsinki area has no such stop."
+            return ("Helsinki area has no such stop.",
+                    "Helsinki area has no such stop.")
 
         stop_line = u"For stop {0:s}".format(s["code_short"])
 
