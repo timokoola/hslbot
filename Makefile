@@ -1,6 +1,6 @@
 
 
-.PHONY: deploy test clean lint
+.PHONY: deploy unittest integrationtest clean lint
 
 deploy: clean package staging-upload upload
 
