@@ -58,4 +58,5 @@ target/
 *.zip
 .idea/
 *.keys
+keys.py
 lambdamain.py

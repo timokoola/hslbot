@@ -10,7 +10,7 @@ clean:
 	rm -rf hslbot.zip
 
 package:
-	zip -r hslbot.zip departures.py lambdamain.py requests pytz
+	zip -r hslbot.zip departures.py lambdamain.py alexarequests.py requests pytz
 
 upload:
 	aws lambda update-function-code --function-name $(LAMBDANAME) --zip-file fileb://hslbot.zip --region us-east-1

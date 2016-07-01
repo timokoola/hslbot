@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from requests import get, exceptions
 from pytz import timezone
+import boto3
 
 
 class HslUrls(object):
@@ -118,9 +119,11 @@ class HslRequests(object):
                  in l])
         else:
             return ("Helsinki area has no such stop.",
-                    "Helsinki area has no such stop.")
+                    "Helsinki area has no such stop.",
+                    None)
 
-        stop_line = u"For stop {0:s}".format(s["code_short"])
+        actual_code = s["code_short"]
+        stop_line = u"For stop {0:s}".format(actual_code)
 
         if s["departures"]:
             departure_line = (
@@ -147,7 +150,7 @@ class HslRequests(object):
                 departure_line[2])
         card = "\n".join([stop_line, summary_line])
 
-        return (speech, card)
+        return (speech, card, actual_code)
 
     def _stop_info_lines_info(self, stop_code):
         try:
