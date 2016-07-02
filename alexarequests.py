@@ -55,11 +55,12 @@ class DynamoStorage(object):
         response = self.table.query(
             KeyConditionExpression=Key('userkey').eq(self.get_user_id()))
         count = response.get("Count", 0)
+        username = userId
         if count > 0:
             cresp = self.table.put_item(
-                Item={"userkey": "test1", "stopcode": stop_code})
+                Item={"userkey": username, "stopcode": stop_code})
         else:
-            cresp = self.table.update_item(Key={"userkey": "test1"},
+            cresp = self.table.update_item(Key={"userkey": username},
                                            UpdateExpression="set stopcode = :s",
                                            ExpressionAttributeValues={
                                                ':s': stop_code},
