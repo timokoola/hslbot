@@ -1,10 +1,14 @@
+import boto3
+from boto3.dynamodb.conditions import Key
+
+
 def launch_response():
     text_item = {"type": "PlainText",
                  "text": "Welcome to Helsinki buses. " +
                          "We can tell you departures on Helsinki area " +
                          "bus stops." +
                          "Just utter the four digit stop code for" +
-                         " next departures. " +
+                         "next departures. " +
                          "Try for example: Helsinki 1001. " +
                          "Ask to repeat for updates on same stop"}
     card_item = {"type": "Simple", "title": "Helsinki bus stops",
@@ -36,7 +40,7 @@ def response_creator(text, card):
 
 class DynamoStorage(object):
     def __init__(self, request):
-        self.request_json = json.loads(request)
+        self.request_json = request
         self.dynamodb = boto3.resource('dynamodb', region_name="us-east-1")
         self.table = self.dynamodb.Table("HslBotUsers")
 

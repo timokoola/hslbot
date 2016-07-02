@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
 
-from requests import get, exceptions
 from pytz import timezone
-import boto3
+from requests import get, exceptions
 
 
 class HslUrls(object):
@@ -124,6 +123,8 @@ class HslRequests(object):
 
         actual_code = s["code_short"]
         stop_line = u"For stop {0:s}".format(actual_code)
+        card_stop_line = s["name_fi"] + " " \
+                         + s["address_fi"]
 
         if s["departures"]:
             departure_line = (
@@ -148,7 +149,7 @@ class HslRequests(object):
             speech = "%s: Next departures are %s, %s, and %s" % (
                 stop_line, departure_line[0], departure_line[1],
                 departure_line[2])
-        card = "\n".join([stop_line, summary_line])
+        card = "\n".join([card_stop_line, summary_line])
 
         return (speech, card, actual_code)
 
@@ -223,3 +224,35 @@ class HslRequests(object):
 
         return "\n".join(
             ["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in s])
+
+
+def city_code(city):
+    """
+    :param city: city is a custom slot type in the alexa skill configuration
+    possible values are:
+    Helsinki
+    Helsingfors
+    Espoo
+    Esbo
+    Vantaa
+    Vanda
+    Kauniainen
+    Grankulla
+    :return: a short code is in HSL bus stops. "" for Helsinki, "E" for Espoo
+    "V" for Vantaa and "Ka" for Kauniainen
+    """
+    lc = city.lower()
+    if lc == "helsinki" or lc == "helsingfors":
+        return ""
+    elif lc == "espoo" or lc == "esbo":
+        return "E"
+    elif lc == "vantaa" or lc == "vanda":
+        return "V"
+    elif lc == "kauniainen" or lc == "grankulla":
+        return "Ka"
+    else:  # silently default to Helsinki
+        return ""
+
+
+def normalize_stopcode(code):
+    return format(int(code), '04')
