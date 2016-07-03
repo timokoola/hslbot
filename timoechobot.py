@@ -16,14 +16,16 @@ Basic Echobot example, repeats messages.
 Press Ctrl-C on the command line or send a signal to the process to stop the
 bot.
 """
-
-from telegram import Updater
 import logging
+
+import departures
+from keys import telegram_api_key, hsl_username, hsl_passcode
+from telegram.ext import Updater
 
 # Enable logging
 logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        level=logging.INFO)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,15 @@ def echo(bot, update):
     if update.message.text:
         bot.sendMessage(update.message.chat_id, text=update.message.text)
     if update.message.location:
-        text = "(%s,%s)" % (update.message.location.latitude, update.message.location.longitude)
+        text = "(%s,%s)" % (
+            update.message.location.latitude, update.message.location.longitude)
         bot.sendMessage(update.message.chat_id, text=text)
+
+
+def stop_info(bot, update):
+    hsl = departures.HslRequests(hsl_username,
+                                 hsl_passcode)
+    if update.message.text:
 
 
 def error(bot, update, error):
@@ -60,6 +69,7 @@ def main(token):
     # on different commands - answer in Telegram
     dp.addTelegramCommandHandler("start", start)
     dp.addTelegramCommandHandler("help", help)
+    dp.addTelegramCommandHandler("stop", stop_info)
 
     # on noncommand i.e message - echo the message on Telegram
     dp.addTelegramMessageHandler(echo)
@@ -77,7 +87,4 @@ def main(token):
 
 
 if __name__ == '__main__':
-    f = open("keys.keys")
-    lines = f.readlines()
-    f.close()
-    main(lines[0].strip())
+    main(telegram_api_key)
