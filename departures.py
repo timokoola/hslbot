@@ -134,10 +134,9 @@ class HslRequests(object):
         self.urls = HslUrls(user, password)
         self.last_error = None
 
-    def stop_summary(self, stop_code):
+    def stop_summary(self, stop_code, buses=3):
         """
         Provides an summary of bus stop information including departures
-        used by the Telegram bot
         :param stop_code: HSL API stop code
         :return: String containing bus and departures info
         """
@@ -157,16 +156,17 @@ class HslRequests(object):
         if stop["departures"]:
             departure_line = "\n".join(
                 ["%s %s" % (hsl_time_to_time(x["time"]), lines[x["code"]]) for x
-                 in stop["departures"][:3]])
+                 in stop["departures"][:buses]])
         else:
             departure_line = ""
 
         return "\n".join([stop_line, departure_line])
 
-    def relative_time(self, stop_code):
+    def relative_time(self, stop_code, buses=3):
         """
         Provides an summary of bus stop information including departures
-        used by the Alexa skill
+        used by the Alexa skill and Telegram bot
+        :param buses: how many buses to return
         :param stop_code: HSL API stop code
         :return: String containing bus and departures info
         """
@@ -193,12 +193,12 @@ class HslRequests(object):
             departure_line = (
                 ["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x
                  in
-                 sinfo["departures"][:3]])
+                 sinfo["departures"][:buses]])
             summary_line = "\n".join(
                 ["%s %s" % (
                     hsl_time_to_time(x["time"]), summary_lines[x["code"]]) for x
                  in
-                 sinfo["departures"][:3]])
+                 sinfo["departures"][:buses]])
         else:
             departure_line = ["No departures within next 60 minutes"]
             summary_line = "No departures within next 60 minutes"
@@ -212,6 +212,9 @@ class HslRequests(object):
             speech = "%s: Next departures are %s, %s, and %s" % (
                 stop_line, departure_line[0], departure_line[1],
                 departure_line[2])
+        else:
+            speech = "%s: Next departures are %s" % (
+                stop_line, ",".join(departure_line))
         card = "\n".join([card_stop_line, summary_line])
 
         return (speech, card, actual_code)
@@ -241,8 +244,6 @@ class HslRequests(object):
         except exceptions.RequestException:
             return "Error"
         return response.json()
-
-
 
     def _lines_info(self, lines):
         """
@@ -312,9 +313,9 @@ class HslRequests(object):
         if stops == "Error":
             return "No stops nearby this location"
 
-        return "\n".join(
+        return ("\n".join(
             ["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in
-             stops])
+             stops]), ["%s" % x["codeShort"] for x in stops])
 
 
 def city_code(city):
@@ -352,6 +353,7 @@ def normalize_stopcode(code):
     :return: normalized code
     """
     return format(int(code), '04')
+
 
 def _stop_buses(json):
     """
