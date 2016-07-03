@@ -59,4 +59,3 @@ target/
 .idea/
 *.keys
 keys.py
-lambdamain.py
