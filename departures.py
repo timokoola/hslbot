@@ -1,29 +1,52 @@
+"""Classes and functions for accessing Helsinki area traffic data for more info
+ see http://developer.reittiopas.fi/pages/en/http-get-interface.php"""
 # -*- coding: utf-8 -*-
 from collections import defaultdict
 from datetime import datetime
-
 from pytz import timezone
 from requests import get, exceptions
 
 
 class HslUrls(object):
+    """Helper class for building up HSL urls"""
+
     def __init__(self, user, password):
+        """
+        Initializer
+        :param user: username registered for HSL API
+        :param password: associated password
+        """
         self.user = user
         self.password = password
         self.baseurl = "http://api.reittiopas.fi/hsl/prod/?request="
 
     def nearby_stops(self, longitude, latitude):
+        """Get an URL to request nearby bus stops
+        :param longitude: longitude of the location
+        :param latitude: latitude of the location
+        :return: URL
+        """
         url = "%sstops_area&epsg_in=4326&" \
               "center_coordinate=%s,%s&user=%s&pass=%s" % \
               (self.baseurl, latitude, longitude, self.user, self.password)
         return url
 
     def stop_info(self, stop_code):
+        """
+        Get an URL to fetch information about a bus stop
+        :param stop_code: code of the stop
+        :return: URL
+        """
         url = "%sstop&epsg_out=4326&code=%s&user=%s&pass=%s" % (
             self.baseurl, stop_code, self.user, self.password)
         return url
 
     def lines_info(self, lines):
+        """
+        Builds up URL to query line info
+        :param lines: array of stop codes
+        :return: URL
+        """
         lines_str = "|".join(lines)
         url = "%slines&epsg_out=4326&query=%s&user=%s&pass=%s" % (
             self.baseurl, lines_str, self.user, self.password)
@@ -31,6 +54,11 @@ class HslUrls(object):
 
 
 def hsl_time_to_time(hsltime):
+    """
+    Converts HSL API timestamp to hh:dd format
+    :param hsltime: HSL API timestamp (hour maybe bigger than 24!)
+    :return: timestamp in hh:dd format
+    """
     return "%02d.%02d" % (hsltime / 100 % 24, hsltime % 100)
 
 
@@ -51,6 +79,10 @@ def hsl_time_to_time(hsltime):
 # 36 = Kirkkonummi internal bus lines
 # 39 = Kerava internal bus lines
 def vehicle_map(veh):
+    """Maps a vehicle type id to a name
+    :param veh: vehicle type id
+    :return: vehicle type name
+    """
     if veh == 2:
         return "Tram"
     elif veh == 6:
@@ -64,6 +96,14 @@ def vehicle_map(veh):
 
 
 def relative_minutes(stoptime, comparison_time=None):
+    """
+    Change timestamp of HSL API to relative time
+    :param stoptime: API timestamp for a vehicle passing a stop
+     (note that hour can be more than 24!)
+    :param comparison_time: datetime to compare the departure time to
+    if None use current timestamp
+    :return:
+    """
     if comparison_time:
         usertime = comparison_time
     else:
@@ -75,15 +115,32 @@ def relative_minutes(stoptime, comparison_time=None):
         nowagg = usertime.hour * 60 + usertime.minute
     stm = stoptime % 100
     stoptimeagg = sth * 60 + stm
-    return "in %d minutes" % (stoptimeagg - nowagg)
+    delta = stoptimeagg - nowagg
+    if delta == 0:
+        return "Right now"
+    else:
+        return "in %d minutes" % (delta)
 
 
 class HslRequests(object):
+    """Class for making requests to HSL API"""
+
     def __init__(self, user, password):
+        """
+        Initializer
+        :param user: HSL API username
+        :param password: HSL API password
+        """
         self.urls = HslUrls(user, password)
         self.last_error = None
 
     def stop_summary(self, stop_code):
+        """
+        Provides an summary of bus stop information including departures
+        used by the Telegram bot
+        :param stop_code: HSL API stop code
+        :return: String containing bus and departures info
+        """
         (stop_info, line_data) = self._stop_info_lines_info(stop_code)
         stop = stop_info[0]
         if line_data:
@@ -107,35 +164,41 @@ class HslRequests(object):
         return "\n".join([stop_line, departure_line])
 
     def relative_time(self, stop_code):
-        (stop_info, l) = self._stop_info_lines_info(stop_code)
-        s = stop_info[0]
-        if l:
+        """
+        Provides an summary of bus stop information including departures
+        used by the Alexa skill
+        :param stop_code: HSL API stop code
+        :return: String containing bus and departures info
+        """
+        (stop_info, linfo) = self._stop_info_lines_info(stop_code)
+        sinfo = stop_info[0]
+        if linfo:
             lines = dict([(x["code"], "%s %s" % (
                 vehicle_map(x["transport_type_id"]), x["code_short"])) for x in
-                          l])
+                          linfo])
             summary_lines = dict(
                 [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
-                 in l])
+                 in linfo])
         else:
             return ("Helsinki area has no such stop.",
                     "Helsinki area has no such stop.",
                     None)
 
-        actual_code = s["code_short"]
+        actual_code = sinfo["code_short"]
         stop_line = u"For stop {0:s}".format(actual_code)
-        card_stop_line = s["name_fi"] + " " \
-                         + s["address_fi"]
+        card_stop_line = sinfo["name_fi"] + " " \
+                         + sinfo["address_fi"]
 
-        if s["departures"]:
+        if sinfo["departures"]:
             departure_line = (
                 ["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x
                  in
-                 s["departures"][:3]])
+                 sinfo["departures"][:3]])
             summary_line = "\n".join(
                 ["%s %s" % (
                     hsl_time_to_time(x["time"]), summary_lines[x["code"]]) for x
                  in
-                 s["departures"][:3]])
+                 sinfo["departures"][:3]])
         else:
             departure_line = ["No departures within next 60 minutes"]
             summary_line = "No departures within next 60 minutes"
@@ -154,76 +217,104 @@ class HslRequests(object):
         return (speech, card, actual_code)
 
     def _stop_info_lines_info(self, stop_code):
+        """
+        Helper function
+        :param stop_code: HSL API bus stop code
+        """
         try:
             stop_info = self._stop_info_json(stop_code)
         except:
             stop_info = "Error"
         if stop_info == "Error":
             return "Error", None
-        lines_info = self._lines_info(self._stop_buses(stop_info))
+        lines_info = self._lines_info(_stop_buses(stop_info))
         return (stop_info, lines_info)
 
     def _stop_info_json(self, stop_code):
+        """
+        Helper function
+        :param stop_code: HSL API bus stop code
+        """
         url = self.urls.stop_info(stop_code)
         try:
-            r = get(url)
+            response = get(url)
         except exceptions.RequestException:
             return "Error"
-        return r.json()
+        return response.json()
 
-    def _stop_buses(self, json):
-        l = json[0]["lines"]
-        return [x.split(":")[0] for x in l]
+
 
     def _lines_info(self, lines):
+        """
+        Helper function to fetch line information of listed lines
+        :param lines: list of HSL API line codes
+        """
         url = self.urls.lines_info(lines)
         try:
-            r = get(url)
+            response = get(url)
         except exceptions.RequestException:
             return "Error"
-        return r.json()
+        return response.json()
 
     def stop_lines_summary(self, stop_code):
-        """Return bus code, name, address, and lines going from this stop"""
-        (stop_info, l) = self._stop_info_lines_info(stop_code)
-        s = stop_info[0]
+        """Return bus code, name, address, and lines going from this stop
+        :param stop_code: HSL API stop code
+        :return: comma separated string of stop info
+        """
+        (stop_info, linfo) = self._stop_info_lines_info(stop_code)
+        sinfo = stop_info[0]
 
-        if l:
-            linecodes = dict([(x["code"], x["code_short"]) for x in l])
+        if linfo:
+            linecodes = dict([(x["code"], x["code_short"]) for x in linfo])
         else:
             return "Helsinki area has no such bus stop" % stop_code
 
-        d = dict(map(lambda x: x.split(":"), s["lines"]))
+        dld = dict([x.split(":") for x in sinfo["lines"]])
 
-        stop_line = s["code_short"] + " " + s["name_fi"] + " " + s["address_fi"]
-        ends_lines = [(d[k].split(",")[0], linecodes[k]) for k in d.keys()]
+        stop_line = sinfo["code_short"] + " " + sinfo["name_fi"] + " " + sinfo[
+            "address_fi"]
+        ends_lines = [(dld[k].split(",")[0], linecodes[k]) for k in dld.keys()]
 
-        d = defaultdict(list)
+        ddl = defaultdict(list)
 
         for last, code in ends_lines:
-            d[last].append(code)
+            ddl[last].append(code)
 
         sumsum = ", ".join(
-            ["%s %s" % (", ".join(sorted(d[k])), k) for k in sorted(d.keys())])
+            ["%s %s" % (", ".join(sorted(ddl[k])), k) for k in
+             sorted(ddl.keys())])
 
         return "\n".join([stop_line, sumsum])
 
     def _location_stops(self, longitude, latitude):
+        """
+        Fetch stops at location using HSL API
+        :param longitude: longitude of the location
+        :param latitude: latitude of the location
+        :return: new line separted list of close by stops
+        """
         url = self.urls.nearby_stops(longitude, latitude)
         try:
-            r = get(url)
+            response = get(url)
         except exceptions.RequestException:
             return "Error"
-        return r.json()
+        return response.json()
 
     def stops_for_location(self, longitude, latitude):
-        s = self._location_stops(longitude, latitude)
+        """
+        Get stops at location
+        :param longitude: longitude of the location
+        :param latitude: latitude of the location
+        :return: new line separted list of close by stops
+        """
+        stops = self._location_stops(longitude, latitude)
 
-        if s == "Error":
+        if stops == "Error":
             return "No stops nearby this location"
 
         return "\n".join(
-            ["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in s])
+            ["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in
+             stops])
 
 
 def city_code(city):
@@ -241,18 +332,31 @@ def city_code(city):
     :return: a short code is in HSL bus stops. "" for Helsinki, "E" for Espoo
     "V" for Vantaa and "Ka" for Kauniainen
     """
-    lc = city.lower()
-    if lc == "helsinki" or lc == "helsingfors":
+    lc_city = city.lower()
+    if lc_city == "helsinki" or lc_city == "helsingfors":
         return ""
-    elif lc == "espoo" or lc == "esbo":
+    elif lc_city == "espoo" or lc_city == "esbo":
         return "E"
-    elif lc == "vantaa" or lc == "vanda":
+    elif lc_city == "vantaa" or lc_city == "vanda":
         return "V"
-    elif lc == "kauniainen" or lc == "grankulla":
+    elif lc_city == "kauniainen" or lc_city == "grankulla":
         return "Ka"
     else:  # silently default to Helsinki
         return ""
 
 
 def normalize_stopcode(code):
+    """
+    Make stopcode a four digit, zero padded string
+    :param code: raw cod
+    :return: normalized code
+    """
     return format(int(code), '04')
+
+def _stop_buses(json):
+    """
+    Helper function for enumerating buses going through the stop
+    :param json: HSL API bus stop code
+    """
+    lines = json[0]["lines"]
+    return [x.split(":")[0] for x in lines]

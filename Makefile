@@ -19,7 +19,7 @@ staging-upload:
 	aws lambda update-function-code --function-name hslstop --zip-file fileb://hslbot.zip --region eu-west-1
 
 lint:
-	pylint departures.py lambdamain.py 2>/dev/null; true
+	pylint departures.py lambdamain.py alexarequests.py 2>/dev/null; true
 
 unittest:
 	python -m unittest test.testdepartures
