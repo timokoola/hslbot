@@ -48,12 +48,12 @@ def on_chat_message(msg, hsl, bot):
             m = re.match(r".*\b(\d+)", text)
             if m:
                 card = get_stop_text("", m.groups()[0], hsl)
-                bot.sendMessage(chat_id, card)
+                bot.sendMessage(chat_id, card, "Markdown")
 
     print('Chat Message:', content_type, chat_type, chat_id)
 
 
 def get_stop_text(city, stop_code, hsl):
     normalized = normalize_stopcode(stop_code)
-    _, card, actual = hsl.relative_time(city + normalized, 6)
-    return "%s %s" % (actual, card)
+    _, card, actual = hsl.relative_time(city + normalized, 6, "*")
+    return "*%s %s" % (actual, card)

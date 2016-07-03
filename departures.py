@@ -162,7 +162,7 @@ class HslRequests(object):
 
         return "\n".join([stop_line, departure_line])
 
-    def relative_time(self, stop_code, buses=3):
+    def relative_time(self, stop_code, buses=3, end_line=""):
         """
         Provides an summary of bus stop information including departures
         used by the Alexa skill and Telegram bot
@@ -215,7 +215,7 @@ class HslRequests(object):
         else:
             speech = "%s: Next departures are %s" % (
                 stop_line, ",".join(departure_line))
-        card = "\n".join([card_stop_line, summary_line])
+        card = "\n".join([card_stop_line + end_line, summary_line])
 
         return (speech, card, actual_code)
 
