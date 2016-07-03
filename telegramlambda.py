@@ -12,7 +12,6 @@ from keys import hsl_username, hsl_passcode, telegram_api_key
 def lambda_handler(event, context):
     """Lambda handle function for Telegram bot, calls are
     routed through API gateway"""
-    print(event)
     hsl = departures.HslRequests(hsl_username,
                                  hsl_passcode)
     bot = telepot.Bot(telegram_api_key)
@@ -30,7 +29,6 @@ def send_help_text(bot):
 
 def on_chat_message(msg, hsl, bot):
     content_type, chat_type, chat_id = telepot.glance(msg)
-    print('Chat Message:', content_type, chat_type, chat_id)
     if content_type == u"location":
         location = msg["location"]
         latitude = location["latitude"]
