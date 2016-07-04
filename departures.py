@@ -52,6 +52,18 @@ class HslUrls(object):
             self.baseurl, lines_str, self.user, self.password)
         return url
 
+    def geocode_address(self, query):
+        """
+        Builds up URL to search for stops around a search term
+        (API recognizes places, addresses etc.
+        api.reittiopas.fi/hsl/prod/?request=geocode&key=
+        :param query: search term
+        """
+        url = "%sgeocode&key=%s&user=%s&pass=%s" % (self.baseurl,
+                                                    query, self.user,
+                                                    self.password)
+        return url
+
 
 def hsl_time_to_time(hsltime):
     """
@@ -268,7 +280,7 @@ class HslRequests(object):
         if linfo:
             linecodes = dict([(x["code"], x["code_short"]) for x in linfo])
         else:
-            return "Helsinki area has no such bus stop" % stop_code
+            return "Helsinki area has no bus stop " + stop_code
 
         dld = dict([x.split(":") for x in sinfo["lines"]])
 
@@ -300,6 +312,38 @@ class HslRequests(object):
         except exceptions.RequestException:
             return "Error"
         return response.json()
+
+    def _search_result_stops(self, query):
+        """
+        Fetch stops by search term
+        :param query:
+        :return: JSON returned from HSL API
+        """
+        url = self.urls.geocode_address(query)
+        try:
+            response = get(url)
+        except exceptions.RequestException:
+            return "Error"
+        return response.json()
+
+    def stops_for_query(self, query):
+        """
+        Return
+        :param query:
+        """
+        stops = self._search_result_stops(query)
+
+        if stops == "Error":
+            return "No stops nearby this location"
+
+        return ("\n".join(
+            ["%s %s %s" % (
+                x["details"]["shortCode"], x["name"], x["details"]["address"])
+             for x
+             in
+             stops if x["locType"] == "stop"]),
+                ["%s" % x["details"]["shortCode"] for x in stops if
+                 x["locType"] == "stop"])
 
     def stops_for_location(self, longitude, latitude):
         """

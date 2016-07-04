@@ -24,7 +24,9 @@ def send_help_text(bot):
            "Send a location to bot to get stops near you.\n" \
            "Send a stop code to see departures\n" \
            "For example try 'V0531' for airport trains to Helsinki\n" \
-           "or '0099' for Suomenlinna ferries\n"
+           "or '0099' for Suomenlinna ferries\n" \
+           "search for stops with 'search address'\n" \
+           "and get stop info with 'info stopcode'\n"
 
 
 def on_chat_message(msg, hsl, bot):
@@ -39,6 +41,16 @@ def on_chat_message(msg, hsl, bot):
         text = msg["text"]
         if text.find("help") != -1:
             bot.sendMessage(chat_id, send_help_text(bot))
+            return
+        elif text.lower().startswith("search"):
+            term = " ".join(text.lower().split(" ")[1:])
+            card = hsl.stops_for_query(term)[0]
+            bot.sendMessage(chat_id, card, "Markdown")
+            return
+        elif text.lower().startswith("info"):
+            term = "".join(text.split(" ")[1])
+            card = hsl.stop_lines_summary(term)
+            bot.sendMessage(chat_id, card, "Markdown")
             return
         m = re.match(r".*\b(\D+)(\d+)", text)
         if m:
