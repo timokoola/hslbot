@@ -202,7 +202,7 @@ class HslRequests(object):
                          + sinfo["address_fi"]
 
         all_departures = sorted(
-            reduce(lambda x, y: x + y, [x["departures"] for x in s]),
+            reduce(lambda x, y: x + y, [x["departures"] for x in stop_info]),
             key=lambda x: x['time'])
 
         if all_departures and len(all_departures) > 0:
