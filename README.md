@@ -1,2 +1,2 @@
 # HSL bot
-Echo and Telegram bot for HSL bus stop info
+Echo, Messenger, and Telegram bot for HSL bus stop info
