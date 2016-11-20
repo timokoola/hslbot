@@ -408,5 +408,6 @@ def _stop_buses(json):
     Helper function for enumerating buses going through the stop
     :param json: HSL API bus stop code
     """
-    lines = json[0]["lines"]
+    # lines = json[0]["lines"]
+    lines = reduce(lambda x, y: x + y, [x["lines"] for x in json])
     return [x.split(":")[0] for x in lines]
