@@ -29,7 +29,7 @@ def lambda_handler(event, context):
 
 def send_help_text(bot):
     """Help text"""
-    return "Hello, this bot offers Helsinki area public transportation info.\n" \
+    return "Hello, Hello, this bot offers Helsinki area public transportation info.\n" \
            "Send a location to bot to get stops near you.\n" \
            "Send a stop code to see departures\n" \
            "For example try 'V0531' for airport trains to Helsinki\n" \
