@@ -397,7 +397,7 @@ class HslRequests(object):
             return "No stops nearby this location"
 
         return ("\n".join(
-            ["%s %s %s" % (x["codeShort"], x["name"], x["address"]) for x in
+            ["%s %s %s %dm" % (x["codeShort"], x["name"], x["address"], x["dist"]) for x in
              stops]), ["%s" % x["codeShort"] for x in stops])
 
 

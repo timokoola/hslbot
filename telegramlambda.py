@@ -25,7 +25,7 @@ def send_help_text(bot):
            "Send a stop code to see departures\n" \
            "For example try 'V0531' for airport trains to Helsinki\n" \
            "or '0099' for Suomenlinna ferries\n" \
-           "search for stops with 'search address'\n" \
+           "search for stops with 'search place'\n" \
            "and get stop info with 'info stopcode'\n"
 
 
