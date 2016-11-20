@@ -178,7 +178,7 @@ class HslRequests(object):
         """
         Provides an summary of bus stop information including departures
         used by the Alexa skill and Telegram bot
-        :param buses: how many buses to return
+        :param buses: how many buses(or trams, ferries) to return
         :param stop_code: HSL API stop code
         :return: String containing bus and departures info
         """
@@ -201,16 +201,20 @@ class HslRequests(object):
         card_stop_line = sinfo["name_fi"] + " " \
                          + sinfo["address_fi"]
 
-        if sinfo["departures"]:
+        all_departures = sorted(
+            reduce(lambda x, y: x + y, [x["departures"] for x in s]),
+            key=lambda x: x['time'])
+
+        if all_departures and len(all_departures) > 0:
             departure_line = (
                 ["%s %s" % (lines[x["code"]], relative_minutes(x["time"])) for x
                  in
-                 sinfo["departures"][:buses]])
+                 all_departures[:buses]])
             summary_line = "\n".join(
                 ["%s %s" % (
                     hsl_time_to_time(x["time"]), summary_lines[x["code"]]) for x
                  in
-                 sinfo["departures"][:buses]])
+                 all_departures[:buses]])
         else:
             departure_line = ["No departures within next 60 minutes"]
             summary_line = "No departures within next 60 minutes"

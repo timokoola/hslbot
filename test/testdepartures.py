@@ -29,6 +29,11 @@ class DeparturesTests(TestCase):
         s = h.stop_summary(1572)
         self.assertIn("1572", s)
 
+    def test_0070(self):
+        h = HslRequests(self.username, self.password)
+        s = h.stop_summary("0070")
+        self.assertIn("0070", s)
+
     def test_unexisting(self):
         h = HslRequests(self.username, self.password)
         s = h.stop_summary(1232131)
