@@ -90,6 +90,39 @@ def hsl_time_to_time(hsltime):
 # 25 = region night buses
 # 36 = Kirkkonummi internal bus lines
 # 39 = Kerava internal bus lines
+def vehicle_emoji(veh):
+    """Maps a vehicle type id to an emoji
+    :param veh: vehicle type id
+    :return: vehicle type emoji
+    """
+    if veh == 2:
+        return u"\U0001F68B"
+    elif veh == 6:
+        return u"\U0001f687"
+    elif veh == 7:
+        return u"\U000026F4"
+    elif veh == 12:
+        return u"\U0001F686"
+    else:
+        return u"\U0001F68C"
+
+
+# 1 = Helsinki internal bus lines
+# 2 = trams
+# 3 = Espoo internal bus lines
+# 4 = Vantaa internal bus lines
+# 5 = regional bus lines
+# 6 = metro
+# 7 = ferry
+# 8 = U-lines
+# 12 = commuter trains
+# 21 = Helsinki service lines
+# 22 = Helsinki night buses
+# 23 = Espoo service lines
+# 24 = Vantaa service lines
+# 25 = region night buses
+# 36 = Kirkkonummi internal bus lines
+# 39 = Kerava internal bus lines
 def vehicle_map(veh):
     """Maps a vehicle type id to a name
     :param veh: vehicle type id
@@ -189,7 +222,9 @@ class HslRequests(object):
                 vehicle_map(x["transport_type_id"]), x["code_short"])) for x in
                           linfo])
             summary_lines = dict(
-                [(x["code"], "%s %s" % (x["code_short"], x["line_end"])) for x
+                [(x["code"], "%s %s %s" % (
+                    x["code_short"], vehicle_emoji(x["transport_type_id"]),
+                    x["line_end"])) for x
                  in linfo])
         else:
             return ("Helsinki area has no such stop.",
