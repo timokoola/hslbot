@@ -41,6 +41,17 @@ class HslUrls(object):
             self.baseurl, stop_code, self.user, self.password)
         return url
 
+    def multiple_stop_info(self, stop_codes):
+        """
+        Get an URL to fetch information about a bus stop
+        :param stop_code: code of the stop
+        :return: URL
+        """
+        code_str = "&code=".join([str(x) for x in stop_codes])
+        url = "%sstop&epsg_out=4326&code=%s&user=%s&pass=%s" % (
+            self.baseurl, code_str, self.user, self.password)
+        return url
+
     def lines_info(self, lines):
         """
         Builds up URL to query line info
